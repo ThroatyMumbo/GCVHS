@@ -1,0 +1,60 @@
+; 4-bit SD bus against a free-running clock (PWM on CLK_PIN): data changes after a falling edge and is
+; sampled just after a rising one.
+.define PUBLIC CLK_PIN 16
+
+; Two TX words per command: bits 47..16, then bits 15..0 << 16 | response bits after its start bit - 1
+; (0: no response). Explicit pulls, so no bit waits on the FIFO mid-clock; autopush at 32, shifting left.
+.program sdio_cmd
+public start:
+.wrap_target
+    pull block
+    set pindirs, 1
+    set x, 31
+    wait 1 gpio CLK_PIN                 ; the start bit goes out just after a falling edge, not late in a low phase
+hi: wait 0 gpio CLK_PIN
+    out pins, 1
+    wait 1 gpio CLK_PIN
+    jmp x-- hi
+    pull block
+    set x, 15
+lo: wait 0 gpio CLK_PIN
+    out pins, 1
+    wait 1 gpio CLK_PIN
+    jmp x-- lo
+    out x, 16
+    wait 0 gpio CLK_PIN
+    set pindirs, 0
+    jmp !x start
+resp:
+    wait 0 gpio CLK_PIN
+    wait 1 gpio CLK_PIN
+    jmp pin resp                        ; jmp pin = CMD: still high, no start bit yet
+bit:
+    wait 0 gpio CLK_PIN
+    wait 1 gpio CLK_PIN
+    in pins, 1
+    jmp x-- bit
+    push
+.wrap
+
+; TX words: blocks - 1, then nibbles per block - 1 (data, CRC). Each block starts with DAT0 low.
+; Autopush at 32, shifting left.
+.program sdio_rx
+public start:
+.wrap_target
+    pull block
+    mov y, osr
+    pull block
+blk:
+    mov x, osr
+idle:
+    wait 0 gpio CLK_PIN
+    wait 1 gpio CLK_PIN
+    jmp pin idle                        ; jmp pin = DAT0
+nib:
+    wait 0 gpio CLK_PIN
+    wait 1 gpio CLK_PIN
+    in pins, 4
+    jmp x-- nib
+    jmp y-- blk
+.wrap

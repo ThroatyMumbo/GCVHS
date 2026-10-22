@@ -1,0 +1,3 @@
+[submodule "external/GameConsoleV2"]
+	path = external/GameConsoleV2
+	url = https://github.com/ThroatyMumbo/GameConsoleV2

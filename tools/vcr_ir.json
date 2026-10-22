@@ -1,0 +1,8 @@
+{
+ "PLAY": {"protocol": "Kaseikyo", "vendor": 8194, "bytes": [144, 0, 10, 154], "carrier_hz": 36700},
+ "STOP": {"protocol": "Kaseikyo", "vendor": 8194, "bytes": [144, 0, 0, 144], "carrier_hz": 36700},
+ "REW": {"protocol": "Kaseikyo", "vendor": 8194, "bytes": [144, 0, 2, 146], "carrier_hz": 36700},
+ "FF": {"protocol": "Kaseikyo", "vendor": 8194, "bytes": [144, 0, 3, 147], "carrier_hz": 36700},
+ "PAUSE": {"protocol": "Kaseikyo", "vendor": 8194, "bytes": [144, 0, 6, 150], "carrier_hz": 36700},
+ "POWER": {"protocol": "Kaseikyo", "vendor": 8194, "bytes": [144, 0, 61, 173], "carrier_hz": 36700}
+}

@@ -1,0 +1,47 @@
+; DE1 link. DN: a byte on GP3-GP10, 3 cycles, a GP2 edge, 3 more cycles; waits on RDY
+; (GP16) first. A stall holds the strobe level, so it adds no edge. One byte per 7 cycles, 22 ns at 315 MHz.
+.program link_dn
+.side_set 1 opt
+.wrap_target
+    wait 1 gpio 16
+    out pins, 8     side 0 [2]
+    nop             side 1 [2]
+    wait 1 gpio 16
+    out pins, 8     side 1 [2]
+    nop             side 0 [2]
+.wrap
+
+; UP: nibbles on GP12-GP15, low on the GP11 rising edge, high on the falling. Starts on a low strobe, which
+; only happens between bytes.
+.program link_up
+    wait 0 gpio 11
+.wrap_target
+    wait 1 gpio 11
+    in pins, 4
+    wait 0 gpio 11
+    in pins, 4
+.wrap
+
+% c-sdk {
+static inline void link_dn_init(PIO pio, uint sm, uint offset, uint stb_pin, uint data_pin) {
+    pio_sm_config c = link_dn_program_get_default_config(offset);
+    sm_config_set_out_pins(&c, data_pin, 8);
+    sm_config_set_sideset_pins(&c, stb_pin);
+    sm_config_set_out_shift(&c, true, true, 8);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    pio_gpio_init(pio, stb_pin);
+    for (uint i = 0; i < 8; i++) pio_gpio_init(pio, data_pin + i);
+    pio_sm_set_pins_with_mask(pio, sm, 0, 1u << stb_pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, stb_pin, 1, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, data_pin, 8, true);
+    pio_sm_init(pio, sm, offset, &c);
+}
+
+static inline void link_up_init(PIO pio, uint sm, uint offset, uint data_pin) {
+    pio_sm_config c = link_up_program_get_default_config(offset);
+    sm_config_set_in_pins(&c, data_pin);
+    sm_config_set_in_shift(&c, true, true, 8);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+    pio_sm_init(pio, sm, offset, &c);
+}
+%}

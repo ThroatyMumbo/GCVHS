@@ -1,0 +1,25 @@
+; Link test to the DE1: 7 data pins, then a strobe edge one cycle later; each strobe edge is one word.
+; Words are bytes, LSB first, bit 7 dropped. A stall holds the strobe level, so it adds no edge.
+.program link_tx
+.side_set 1
+.wrap_target
+    out pins, 7     side 0
+    out null, 1     side 1
+    out pins, 7     side 1
+    out null, 1     side 0
+.wrap
+
+% c-sdk {
+static inline void link_tx_init(PIO pio, uint sm, uint offset, uint stb_pin, uint data_pin) {
+    pio_sm_config c = link_tx_program_get_default_config(offset);
+    sm_config_set_out_pins(&c, data_pin, 7);
+    sm_config_set_sideset_pins(&c, stb_pin);
+    sm_config_set_out_shift(&c, true, true, 32);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    pio_gpio_init(pio, stb_pin);
+    for (uint i = 0; i < 7; i++) pio_gpio_init(pio, data_pin + i);
+    pio_sm_set_consecutive_pindirs(pio, sm, stb_pin, 1, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, data_pin, 7, true);
+    pio_sm_init(pio, sm, offset, &c);
+}
+%}

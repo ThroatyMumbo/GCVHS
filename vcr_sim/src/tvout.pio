@@ -1,0 +1,6 @@
+.program tvout
+; One byte per sample, low 6 bits to the R-2R DAC; the caller sets the autopull threshold.
+.wrap_target
+    out pins, 6
+    out null, 2
+.wrap
